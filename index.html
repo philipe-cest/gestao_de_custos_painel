@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Gestão à Vista: Custos Industriais & BI Operacional</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --brand-navy: #001738;
+            --brand-blue: #0052cc;
+            --brand-cyan: #00c0f3;
+            --brand-dark: #090e17;
+            --card-bg: rgba(17, 24, 39, 0.95);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #080d1a;
+            color: #f1f5f9;
+        }
+
+        .font-mono-num {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Scrollbar fina e moderna */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        .glow-card {
+            background: linear-gradient(145deg, rgba(20, 30, 55, 0.7) 0%, rgba(10, 16, 30, 0.9) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.18);
+            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
+            transition: all 0.25s ease-in-out;
+        }
+        .glow-card:hover {
+            border-color: rgba(59, 130, 246, 0.38);
+            box-shadow: 0 12px 28px -4px rgba(0, 82, 204, 0.25);
+        }
+
+        .metric-badge {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+
+        .input-dark {
+            background: #0b1329;
+            border: 1.5px solid #1e2e50;
+            color: #38bdf8;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+        .input-dark:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+            background: #0f1b38;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-3 md:p-5 flex flex-col gap-4">
+
+    <!-- CABEÇALHO EXECUTIVO / TOP BAR -->
+    <header class="w-full bg-[#0b132b]/90 border border-blue-900/50 rounded-xl px-5 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+        <div class="flex items-center gap-3.5">
+            <div class="bg-gradient-to-tr from-blue-700 to-cyan-500 p-2.5 rounded-lg shadow-lg shadow-blue-500/20 text-white font-extrabold text-lg tracking-wider">
+                BI
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-cyan-400 bg-cyan-950/80 border border-cyan-800/60 px-2 py-0.5 rounded tracking-wide uppercase">CEST Anil • Administração</span>
+                    <span class="text-xs text-slate-400">|</span>
+                    <span class="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Sistema Ativo & Integrado
+                    </span>
+                </div>
+                <h1 class="text-lg md:text-xl font-extrabold text-white tracking-tight">
+                    Painel de Gestão à Vista: Custos Industriais & Custeio por Absorção
+                </h1>
+            </div>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2.5">
+            <!-- Botões de Carga Rápida de Casos -->
+            <button onclick="carregarCaso(1)" class="px-3 py-1.5 bg-blue-950 hover:bg-blue-900 border border-blue-700 text-blue-200 text-xs font-bold rounded-lg transition shadow">
+                Caso 1: Metalúrgica
+            </button>
+            <button onclick="carregarCaso(2)" class="px-3 py-1.5 bg-amber-950 hover:bg-amber-900 border border-amber-700 text-amber-200 text-xs font-bold rounded-lg transition shadow">
+                Caso 2: Perdas e Sinistro
+            </button>
+            <button onclick="carregarCaso(3)" class="px-3 py-1.5 bg-purple-950 hover:bg-purple-900 border border-purple-700 text-purple-200 text-xs font-bold rounded-lg transition shadow">
+                Caso 3: Ociosidade CPC 16
+            </button>
+            <button onclick="document.documentElement.requestFullscreen()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-600 transition" title="Tela Cheia">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- GRID PRINCIPAL: ENTRADA DE DADOS + CARDS E GRÁFICOS -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1">
+        
+        <!-- PAINEL ESQUERDO: LANÇAMENTO DE VARIÁVEIS (COL 4) -->
+        <aside class="lg:col-span-4 flex flex-col gap-4">
+            
+            <div class="glow-card rounded-xl p-4.5">
+                <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-3.5">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-cyan-400"></div>
+                        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-200">Lançamento de Dados Fabris</h2>
+                    </div>
+                    <span class="text-[11px] text-slate-400 mono">Entrada em Tempo Real</span>
+                </div>
+
+                <!-- Formulário de Alimentação -->
+                <div class="space-y-3.5 text-xs">
+                    
+                    <!-- BLOCO: CUSTOS DIRETOS -->
+                    <div class="bg-slate-900/60 border border-slate-800 p-3 rounded-lg">
+                        <span class="block text-[10px] font-extrabold uppercase text-blue-400 tracking-wider mb-2">1. Fatores Diretos de Produção (R$)</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">Matéria-Prima Direta (MP)</label>
+                                <input type="number" id="in_mp" value="140000" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">Mão de Obra Direta (MOD)</label>
+                                <input type="number" id="in_mod" value="80000" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOCO: CUSTOS INDIRETOS & DESPESAS -->
+                    <div class="bg-slate-900/60 border border-slate-800 p-3 rounded-lg">
+                        <span class="block text-[10px] font-extrabold uppercase text-cyan-400 tracking-wider mb-2">2. Gastos Indiretos & Estruturais (R$)</span>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">CIF Fixo Total</label>
+                                <input type="number" id="in_cif_fixo" value="40000" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">CIF Variável</label>
+                                <input type="number" id="in_cif_var" value="20000" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">Despesas Adm/Vendas</label>
+                                <input type="number" id="in_despesas" value="30000" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOCO: VOLUMES E CAPACIDADE -->
+                    <div class="bg-slate-900/60 border border-slate-800 p-3 rounded-lg">
+                        <span class="block text-[10px] font-extrabold uppercase text-emerald-400 tracking-wider mb-2">3. Volumes Físicos & Engenharia (un)</span>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">Capacidade Normal (CPC 16)</label>
+                                <input type="number" id="in_cap_instalada" value="6000" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">Volume Iniciado na Linha</label>
+                                <input type="number" id="in_vol_produzido" value="5000" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">Perda Normal (Refugo Inerente)</label>
+                                <input type="number" id="in_perda_normal" value="0" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs text-amber-400">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">Perda Anormal (Sinistro)</label>
+                                <input type="number" id="in_perda_anormal" value="0" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs text-rose-400">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOCO: MERCADO E COMERCIALIZAÇÃO -->
+                    <div class="bg-slate-900/60 border border-slate-800 p-3 rounded-lg">
+                        <span class="block text-[10px] font-extrabold uppercase text-purple-400 tracking-wider mb-2">4. Mercado & Precificação</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">Preço de Venda Unitário (R$)</label>
+                                <input type="number" id="in_preco_venda" value="90" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs text-emerald-400">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 text-[10px] font-semibold mb-1">Volume Efetivamente Vendido (un)</label>
+                                <input type="number" id="in_vol_vendido" value="4000" oninput="calcularPainel()" class="input-dark w-full px-2.5 py-1.5 rounded text-xs text-cyan-300">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ALERTA DINÂMICO DE GESTÃO -->
+                <div id="box_alerta_gestao" class="mt-3.5 p-3 rounded-lg bg-blue-950/70 border border-blue-800/80 text-xs flex items-start gap-2.5">
+                    <span class="text-base">💡</span>
+                    <div id="txt_alerta_gestao" class="text-slate-300 leading-snug">
+                        Calculando balanço dos custos e indicadores gerenciais...
+                    </div>
+                </div>
+
+            </div>
+
+        </aside>
+
+        <!-- PAINEL DIREITO: CARDS DE METAS + GRÁFICOS + DRE E BALANÇO (COL 8) -->
+        <main class="lg:col-span-8 flex flex-col gap-4">
+            
+            <!-- LINHA 1: 4 MEGA-CARDS DE KPIs OPERACIONAIS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                
+                <!-- KPI 1: CPP -->
+                <div class="glow-card rounded-xl p-3.5 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Custo Produção (CPP)</span>
+                        <span class="text-[10px] font-mono-num px-1.5 py-0.5 rounded bg-blue-900/60 text-blue-300 font-bold">FÁBRICA</span>
+                    </div>
+                    <div class="my-1.5">
+                        <div id="kpi_cpp" class="text-xl md:text-2xl font-extrabold text-white font-mono-num">R$ 0,00</div>
+                        <span id="kpi_cpp_sub" class="text-[10px] text-slate-400">CP: R$ 0,00 | CT: R$ 0,00</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-blue-500 h-full w-full"></div>
+                    </div>
+                </div>
+
+                <!-- KPI 2: Custo Unitário Absorvido -->
+                <div class="glow-card rounded-xl p-3.5 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Custo Unitário (Cu)</span>
+                        <span class="text-[10px] font-mono-num px-1.5 py-0.5 rounded bg-cyan-900/60 text-cyan-300 font-bold">ABSORVIDO</span>
+                    </div>
+                    <div class="my-1.5">
+                        <div id="kpi_unitario" class="text-xl md:text-2xl font-extrabold text-cyan-300 font-mono-num">R$ 0,00</div>
+                        <span id="kpi_unitario_sub" class="text-[10px] text-slate-400">CFU: R$ 0,00 | CVU: R$ 0,00</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-cyan-400 h-full w-4/5"></div>
+                    </div>
+                </div>
+
+                <!-- KPI 3: CPV vs Estoque Final -->
+                <div class="glow-card rounded-xl p-3.5 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">CPV (DRE)</span>
+                        <span class="text-[10px] font-mono-num px-1.5 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-bold">COMPETÊNCIA</span>
+                    </div>
+                    <div class="my-1.5">
+                        <div id="kpi_cpv" class="text-xl md:text-2xl font-extrabold text-emerald-400 font-mono-num">R$ 0,00</div>
+                        <span id="kpi_cpv_sub" class="text-[10px] text-slate-400">Estoque Final: R$ 0,00</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div id="bar_cpv_ratio" class="bg-emerald-500 h-full" style="width: 70%"></div>
+                    </div>
+                </div>
+
+                <!-- KPI 4: Ponto de Equilíbrio Contábil -->
+                <div class="glow-card rounded-xl p-3.5 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Ponto de Equilíbrio</span>
+                        <span class="text-[10px] font-mono-num px-1.5 py-0.5 rounded bg-purple-900/60 text-purple-300 font-bold">BREAK-EVEN</span>
+                    </div>
+                    <div class="my-1.5">
+                        <div id="kpi_peq" class="text-xl md:text-2xl font-extrabold text-purple-300 font-mono-num">0 un</div>
+                        <span id="kpi_peq_sub" class="text-[10px] text-slate-400">Margem Seg.: 0%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div id="bar_margem_seg" class="bg-purple-500 h-full" style="width: 50%"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- LINHA 2: DOIS GRÁFICOS VISUAIS DE ALTO IMPACTO (CHART.JS) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <!-- GRÁFICO 1: Composição Fabril & Fronteira de Custos -->
+                <div class="glow-card rounded-xl p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between border-b border-slate-700/50 pb-2 mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-200">Composição dos Custos Fabris (CPP)</span>
+                        <span class="text-[10px] text-cyan-400 mono">Fatias de Insumos</span>
+                    </div>
+                    <div class="relative h-56 flex items-center justify-center">
+                        <canvas id="chartComposicao"></canvas>
+                    </div>
+                    <div class="flex justify-around text-[10px] text-slate-400 pt-2 border-t border-slate-800">
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-blue-500"></span> Matéria-Prima</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-cyan-400"></span> Mão de Obra</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-amber-400"></span> CIF Fixo</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-purple-400"></span> CIF Variável</span>
+                    </div>
+                </div>
+
+                <!-- GRÁFICO 2: Análise Custo-Volume-Lucro (Break-Even) -->
+                <div class="glow-card rounded-xl p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between border-b border-slate-700/50 pb-2 mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-200">Gráfico de Ponto de Equilíbrio & Sensibilidade</span>
+                        <span class="text-[10px] text-emerald-400 mono">Receita x Custo Total</span>
+                    </div>
+                    <div class="relative h-56 flex items-center justify-center">
+                        <canvas id="chartBreakEven"></canvas>
+                    </div>
+                    <div class="flex justify-around text-[10px] text-slate-400 pt-2 border-t border-slate-800">
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-emerald-400"></span> Receita Total</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-rose-500"></span> Custo Total</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-indigo-400"></span> Custo Fixo</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- LINHA 3: DRE INDUSTRIAL DINÂMICA COM ANÁLISE VERTICAL & BALANÇO -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                
+                <!-- DRE INDUSTRIAL (COL 7) -->
+                <div class="md:col-span-7 glow-card rounded-xl p-4">
+                    <div class="flex items-center justify-between border-b border-slate-700/60 pb-2.5 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded bg-emerald-400"></span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-white">DRE Gerencial do Período</span>
+                        </div>
+                        <span class="text-[10px] text-slate-400 mono">Princípio da Competência</span>
+                    </div>
+
+                    <div class="space-y-1.5 text-xs font-mono-num">
+                        <div class="flex justify-between py-1 border-b border-slate-800/80 text-slate-200">
+                            <span>(+) Receita Bruta de Vendas</span>
+                            <span id="dre_receita" class="font-bold text-white">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-slate-800/80 text-rose-300">
+                            <span>(-) Custo dos Produtos Vendidos (CPV)</span>
+                            <span id="dre_cpv" class="font-bold">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 bg-blue-950/40 px-2 rounded border border-blue-900/50 text-cyan-300 font-bold">
+                            <span>(=) Lucro Bruto Industrial</span>
+                            <span id="dre_lucro_bruto">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-slate-800/80 text-amber-300">
+                            <span>(-) Despesas Operacionais (Adm/Comerciais)</span>
+                            <span id="dre_despesas">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-slate-800/80 text-rose-400">
+                            <span>(-) Perdas Anormais / Sinistro (DRE Direta)</span>
+                            <span id="dre_perda_anormal">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-slate-800/80 text-purple-300">
+                            <span>(-) Custo Ociosidade Fabril (CPC 16)</span>
+                            <span id="dre_ociosidade">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between py-2 bg-gradient-to-r from-emerald-950/60 to-cyan-950/60 px-2.5 rounded-lg border border-emerald-500/40 text-sm font-bold">
+                            <span class="text-emerald-300">(=) Resultado Líquido Operacional</span>
+                            <span id="dre_lucro_liquido" class="text-emerald-300">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BALANÇO PATRIMONIAL & RETENÇÃO DE ESTOQUES (COL 5) -->
+                <div class="md:col-span-5 glow-card rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-slate-700/60 pb-2.5 mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded bg-cyan-400"></span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-white">Ativo Circulante (Balanço)</span>
+                            </div>
+                            <span class="text-[10px] text-cyan-300 mono">CPC 16</span>
+                        </div>
+
+                        <div class="space-y-2.5 text-xs">
+                            <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                                <span class="text-[10px] text-slate-400 block mb-0.5">Saldo Físico no Armazém</span>
+                                <div id="bal_qtd_estoque" class="text-base font-extrabold text-cyan-300 font-mono-num">0 unidades</div>
+                                <span id="bal_detalhe_qtd" class="text-[10px] text-slate-500">Fabricadas: 0 | Vendidas: 0</span>
+                            </div>
+
+                            <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                                <span class="text-[10px] text-slate-400 block mb-0.5">Valor Contábil do Estoque Final (Ativo)</span>
+                                <div id="bal_val_estoque" class="text-base font-extrabold text-white font-mono-num">R$ 0,00</div>
+                                <span class="text-[10px] text-slate-500">Avaliado ao custo histórico absorvido</span>
+                            </div>
+
+                            <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                                <span class="text-[10px] text-slate-400 block mb-0.5">Custos Fixos "Escondidos" no Balanço</span>
+                                <div id="bal_cf_retido" class="text-base font-extrabold text-amber-300 font-mono-num">R$ 0,00</div>
+                                <span class="text-[10px] text-slate-500">Custos fixos que ainda não viraram despesa</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 text-[10px] text-slate-400 italic text-center">
+                        Demonstração gerencial para fins didáticos • Curso de Administração CEST
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- RODAPÉ TÉCNICO COM GLOSSÁRIO DE FÓRMULAS VIVAS -->
+    <footer class="w-full bg-[#0a1024] border border-slate-800/80 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+        <div class="flex items-center gap-2">
+            <span class="text-white font-bold px-2 py-0.5 bg-blue-900/80 rounded text-[10px] uppercase">Relações Ativas:</span>
+            <span class="mono text-[11px] text-slate-300">CP = MP + MOD</span> |
+            <span class="mono text-[11px] text-slate-300">CT = MOD + CIF</span> |
+            <span class="mono text-[11px] text-slate-300">CPP = MP + MOD + CIF</span> |
+            <span class="mono text-[11px] text-slate-300">Cu = CPP / Qtd_Boas</span> |
+            <span class="mono text-[11px] text-slate-300">PEQ = Gastos Fixos / MCU</span>
+        </div>
+        <div class="text-[11px] text-slate-400">
+            Prof. Msc. Philipe Sampaio Lima • Gestão de Custos & Controladoria
+        </div>
+    </footer>
+
+    <!-- SCRIPT DE INTELIGÊNCIA MATEMÁTICA E GRÁFICOS EM TEMPO REAL -->
+    <script>
+        // Formatação monetária e numérica BR
+        function formatMoeda(num) {
+            if (isNaN(num)) return "R$ 0,00";
+            return "R$ " + num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        function formatNumero(num, decimais = 0) {
+            if (isNaN(num)) return "0";
+            return num.toLocaleString('pt-BR', { minimumFractionDigits: decimais, maximumFractionDigits: decimais });
+        }
+
+        // Instâncias globais dos Gráficos
+        let chartComposicaoInst = null;
+        let chartBreakEvenInst = null;
+
+        function inicializarGraficos() {
+            // 1. Gráfico de Rosca: Composição Fabril
+            const ctxComp = document.getElementById('chartComposicao').getContext('2d');
+            chartComposicaoInst = new Chart(ctxComp, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Matéria-Prima (MP)', 'Mão de Obra (MOD)', 'CIF Fixo', 'CIF Variável'],
+                    datasets: [{
+                        data: [140000, 80000, 40000, 20000],
+                        backgroundColor: ['#3b82f6', '#22d3ee', '#f59e0b', '#c084fc'],
+                        borderColor: '#0b1329',
+                        borderWidth: 3,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${formatMoeda(context.parsed)}`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '68%'
+                }
+            });
+
+            // 2. Gráfico de Linha: Break-Even (Ponto de Equilíbrio)
+            const ctxBE = document.getElementById('chartBreakEven').getContext('2d');
+            chartBreakEvenInst = new Chart(ctxBE, {
+                type: 'line',
+                data: {
+                    labels: ['0', '1k', '2k', '3k', '4k', '5k', '6k'],
+                    datasets: [
+                        {
+                            label: 'Receita Total',
+                            data: [0, 90000, 180000, 270000, 360000, 450000, 540000],
+                            borderColor: '#34d399',
+                            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                            borderWidth: 2.5,
+                            tension: 0.1,
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'Custo Total',
+                            data: [70000, 118000, 166000, 214000, 262000, 310000, 358000],
+                            borderColor: '#f43f5e',
+                            backgroundColor: 'rgba(244, 63, 94, 0.05)',
+                            borderWidth: 2.5,
+                            tension: 0.1,
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'Custo Fixo Total',
+                            data: [70000, 70000, 70000, 70000, 70000, 70000, 70000],
+                            borderColor: '#818cf8',
+                            borderWidth: 1.5,
+                            borderDash: [5, 5],
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { size: 9 },
+                                callback: function(value) { return 'R$ ' + (value/1000) + 'k'; }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: ${formatMoeda(context.parsed.y)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // MOTOR PRINCIPAL DE CÁLCULO E ATUALIZAÇÃO DO BI
+        function calcularPainel() {
+            // Leitura dos Inputs
+            const mp = parseFloat(document.getElementById('in_mp').value) || 0;
+            const mod = parseFloat(document.getElementById('in_mod').value) || 0;
+            const cifFixo = parseFloat(document.getElementById('in_cif_fixo').value) || 0;
+            const cifVar = parseFloat(document.getElementById('in_cif_var').value) || 0;
+            const despesas = parseFloat(document.getElementById('in_despesas').value) || 0;
+
+            const capInstalada = Math.max(1, parseFloat(document.getElementById('in_cap_instalada').value) || 1);
+            const volIniciado = parseFloat(document.getElementById('in_vol_produzido').value) || 0;
+            const perdaNormal = parseFloat(document.getElementById('in_perda_normal').value) || 0;
+            const perdaAnormal = parseFloat(document.getElementById('in_perda_anormal').value) || 0;
+
+            const precoVenda = parseFloat(document.getElementById('in_preco_venda').value) || 0;
+            const volVendido = parseFloat(document.getElementById('in_vol_vendido').value) || 0;
+
+            // Relações Fabris Básicas
+            const cp = mp + mod;
+            const ct = mod + cifFixo + cifVar;
+            const cppTotal = mp + mod + cifFixo + cifVar;
+
+            // Unidades Boas que absorvem a perda normal
+            const volBoas = Math.max(1, volIniciado - perdaNormal);
+            const custoUnitario = cppTotal / volBoas;
+
+            // Decomposição Unitária
+            const cvuFabril = (mp + mod + cifVar) / volBoas;
+            const cfuFabril = cifFixo / volBoas;
+
+            // CPC 16: Ociosidade Fabril Anormal
+            let custoOciosidadeDRE = 0;
+            if (volIniciado < capInstalada) {
+                const taxaFixaNormal = cifFixo / capInstalada;
+                const unidadesOciosas = capInstalada - volIniciado;
+                custoOciosidadeDRE = taxaFixaNormal * unidadesOciosas;
+            }
+
+            // Perda Anormal Direto na DRE
+            const valorPerdaAnormalDRE = perdaAnormal * custoUnitario;
+
+            // Movimentação de Estoque
+            const saldoFisicoEstoque = Math.max(0, volBoas - volVendido - perdaAnormal);
+            const valorEstoqueFinal = saldoFisicoEstoque * custoUnitario;
+            const cfRetidoEstoque = saldoFisicoEstoque * cfuFabril;
+
+            // DRE Operacional
+            const receitaBruta = volVendido * precoVenda;
+            const cpv = volVendido * custoUnitario;
+            const lucroBruto = receitaBruta - cpv;
+            const lucroLiquido = lucroBruto - despesas - valorPerdaAnormalDRE - custoOciosidadeDRE;
+
+            // Análise Custo-Volume-Lucro (Break-Even)
+            const gastosFixosTotais = cifFixo + despesas;
+            const mcu = Math.max(0.01, precoVenda - cvuFabril);
+            const peqUnidades = Math.ceil(gastosFixosTotais / mcu);
+            const margemSegurancaPerc = volVendido > 0 ? ((volVendido - peqUnidades) / volVendido) * 100 : 0;
+
+            // ATUALIZAÇÃO DOS KPIS
+            document.getElementById('kpi_cpp').innerText = formatMoeda(cppTotal);
+            document.getElementById('kpi_cpp_sub').innerText = `CP: ${formatMoeda(cp)} | CT: ${formatMoeda(ct)}`;
+
+            document.getElementById('kpi_unitario').innerText = formatMoeda(custoUnitario) + "/un";
+            document.getElementById('kpi_unitario_sub').innerText = `CFU: ${formatMoeda(cfuFabril)} | CVU: ${formatMoeda(cvuFabril)}`;
+
+            document.getElementById('kpi_cpv').innerText = formatMoeda(cpv);
+            document.getElementById('kpi_cpv_sub').innerText = `Estoque Final: ${formatMoeda(valorEstoqueFinal)}`;
+
+            document.getElementById('kpi_peq').innerText = `${formatNumero(peqUnidades)} un`;
+            document.getElementById('kpi_peq_sub').innerText = `Margem Seg.: ${formatNumero(margemSegurancaPerc, 1)}%`;
+
+            // Barras de progresso nos cards
+            const ratioCPV = cppTotal > 0 ? (cpv / cppTotal) * 100 : 0;
+            document.getElementById('bar_cpv_ratio').style.width = Math.min(100, ratioCPV) + '%';
+            document.getElementById('bar_margem_seg').style.width = Math.min(100, Math.max(0, margemSegurancaPerc)) + '%';
+
+            // ATUALIZAÇÃO DA DRE
+            document.getElementById('dre_receita').innerText = formatMoeda(receitaBruta);
+            document.getElementById('dre_cpv').innerText = "- " + formatMoeda(cpv);
+            document.getElementById('dre_lucro_bruto').innerText = formatMoeda(lucroBruto);
+            document.getElementById('dre_despesas').innerText = "- " + formatMoeda(despesas);
+            document.getElementById('dre_perda_anormal').innerText = "- " + formatMoeda(valorPerdaAnormalDRE);
+            document.getElementById('dre_ociosidade').innerText = "- " + formatMoeda(custoOciosidadeDRE);
+            
+            const elLL = document.getElementById('dre_lucro_liquido');
+            elLL.innerText = formatMoeda(lucroLiquido);
+            if (lucroLiquido >= 0) {
+                elLL.className = "text-emerald-300 font-extrabold";
+            } else {
+                elLL.className = "text-rose-400 font-extrabold";
+            }
+
+            // ATUALIZAÇÃO DO BALANÇO
+            document.getElementById('bal_qtd_estoque').innerText = `${formatNumero(saldoFisicoEstoque)} unidades`;
+            document.getElementById('bal_detalhe_qtd').innerText = `Boas: ${formatNumero(volBoas)} | Vendidas: ${formatNumero(volVendido)}`;
+            document.getElementById('bal_val_estoque').innerText = formatMoeda(valorEstoqueFinal);
+            document.getElementById('bal_cf_retido').innerText = formatMoeda(cfRetidoEstoque);
+
+            // ATUALIZAÇÃO DO ALERTA DE GESTÃO
+            const boxAlerta = document.getElementById('box_alerta_gestao');
+            const txtAlerta = document.getElementById('txt_alerta_gestao');
+            if (lucroLiquido < 0) {
+                boxAlerta.className = "mt-3.5 p-3 rounded-lg bg-rose-950/80 border border-rose-700 text-xs flex items-start gap-2.5 text-rose-200";
+                txtAlerta.innerHTML = `<strong>ALERTA DE DÉFICIT OPERACIONAL:</strong> A operação gerou prejuízo de <strong>${formatMoeda(lucroLiquido)}</strong>. As vendas (${formatNumero(volVendido)} un) estão abaixo do Ponto de Equilíbrio (${formatNumero(peqUnidades)} un). Necessário elevar volume ou rever gastos fixos.`;
+            } else if (perdaNormal > 0 || perdaAnormal > 0) {
+                boxAlerta.className = "mt-3.5 p-3 rounded-lg bg-amber-950/80 border border-amber-700 text-xs flex items-start gap-2.5 text-amber-200";
+                txtAlerta.innerHTML = `<strong>IMPACTO DE DESPERDÍCIOS:</strong> A perda normal encareceu o custo unitário em <strong>${formatMoeda(custoUnitario - (cppTotal/volIniciado))}</strong> por peça boa. O sinistro anormal de <strong>${formatMoeda(valorPerdaAnormalDRE)}</strong> foi expurgado para a DRE sem afetar o estoque.`;
+            } else {
+                boxAlerta.className = "mt-3.5 p-3 rounded-lg bg-emerald-950/80 border border-emerald-700 text-xs flex items-start gap-2.5 text-emerald-200";
+                txtAlerta.innerHTML = `<strong>OPERAÇÃO SUPERAVITÁRIA E EQUILIBRADA:</strong> Lucro Líquido de <strong>${formatMoeda(lucroLiquido)}</strong> com margem de segurança de <strong>${formatNumero(margemSegurancaPerc, 1)}%</strong>. A fábrica absorveu 100% dos custos fixos com sucesso.`;
+            }
+
+            // ATUALIZAÇÃO DOS GRÁFICOS
+            if (chartComposicaoInst) {
+                chartComposicaoInst.data.datasets[0].data = [mp, mod, cifFixo, cifVar];
+                chartComposicaoInst.update();
+            }
+
+            if (chartBreakEvenInst) {
+                const step = Math.max(500, Math.ceil((capInstalada * 1.2) / 6));
+                const labels = [];
+                const dadosRec = [];
+                const dadosCT = [];
+                const dadosCF = [];
+
+                for (let q = 0; q <= capInstalada * 1.2; q += step) {
+                    labels.push(formatNumero(q));
+                    dadosRec.push(q * precoVenda);
+                    dadosCT.push(gastosFixosTotais + (q * cvuFabril));
+                    dadosCF.push(gastosFixosTotais);
+                }
+
+                chartBreakEvenInst.data.labels = labels;
+                chartBreakEvenInst.data.datasets[0].data = dadosRec;
+                chartBreakEvenInst.data.datasets[1].data = dadosCT;
+                chartBreakEvenInst.data.datasets[2].data = dadosCF;
+                chartBreakEvenInst.update();
+            }
+        }
+
+        // CARGA RÁPIDA DOS 3 ESTUDOS DE CASO DA AULA
+        function carregarCaso(caso) {
+            if (caso === 1) {
+                // Caso 1: Metalúrgica Guará S.A.
+                document.getElementById('in_mp').value = 140000;
+                document.getElementById('in_mod').value = 80000;
+                document.getElementById('in_cif_fixo').value = 40000;
+                document.getElementById('in_cif_var').value = 20000;
+                document.getElementById('in_despesas').value = 30000;
+                document.getElementById('in_cap_instalada').value = 6000;
+                document.getElementById('in_vol_produzido').value = 5000;
+                document.getElementById('in_perda_normal').value = 0;
+                document.getElementById('in_perda_anormal').value = 0;
+                document.getElementById('in_preco_venda').value = 90;
+                document.getElementById('in_vol_vendido').value = 4000;
+            } else if (caso === 2) {
+                // Caso 2: Estofados & Móveis Maranhão Ltda. (Desperdícios)
+                document.getElementById('in_mp').value = 95000;
+                document.getElementById('in_mod').value = 45000;
+                document.getElementById('in_cif_fixo').value = 40000;
+                document.getElementById('in_cif_var').value = 0;
+                document.getElementById('in_despesas').value = 20000;
+                document.getElementById('in_cap_instalada').value = 3000;
+                document.getElementById('in_vol_produzido').value = 2500;
+                document.getElementById('in_perda_normal').value = 250;
+                document.getElementById('in_perda_anormal').value = 100;
+                document.getElementById('in_preco_venda').value = 130;
+                document.getElementById('in_vol_vendido').value = 1800;
+            } else if (caso === 3) {
+                // Caso 3: Bebidas Lençóis (Ociosidade e CPC 16)
+                document.getElementById('in_mp').value = 40000;
+                document.getElementById('in_mod').value = 20000;
+                document.getElementById('in_cif_fixo').value = 80000;
+                document.getElementById('in_cif_var').value = 0;
+                document.getElementById('in_despesas').value = 25000;
+                document.getElementById('in_cap_instalada').value = 10000;
+                document.getElementById('in_vol_produzido').value = 5000;
+                document.getElementById('in_perda_normal').value = 0;
+                document.getElementById('in_perda_anormal').value = 0;
+                document.getElementById('in_preco_venda').value = 38;
+                document.getElementById('in_vol_vendido').value = 4500;
+            }
+            calcularPainel();
+        }
+
+        // Inicialização na montagem da tela
+        window.addEventListener('DOMContentLoaded', () => {
+            inicializarGraficos();
+            calcularPainel();
+        });
+    </script>
+</body>
+</html>
